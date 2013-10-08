@@ -17,12 +17,35 @@ The second set of forwarding rules is used to locate the failure in the network.
 
 \textbf{Limitations:}
 \begin{itemize}
-\item This only works in case of a single link or node failure. (As the same node can be in different places fo the cycle thus breaking it multiple times)
+	\item This only works in case of a single link or node failure. (As the same node can be in different places fo the cycle thus breaking it multiple times)
 \end{itemize}
+
 \subsection{FatTire: Declarative Fault Tolerance for SDN}
+This paper introduces a new language constructs that enable a programmer to specify flow invariant, even in case of failure. This construction is then compiled in order to generate backup forwarding table entries using OpenFlow fast failover mechanism and installed on the switches.
+The paper describes the language syntax as well as its implementation.
+
+\textbf{Limitations:}
+\begin{itemize}
+	\item This will require switches to have huge forwarding tables if it wants to account for every possible failure (if the programmer enabled FatTire for all possible flows).
+\end{itemize}
 
 \subsection{Automatic failure recovery for SDN}
+This paper advocates the need to separate the failure recovery mechanism on the controller from the forwarding and policy logic. It presents such a framework which is built for the POX controller, and provides a simple module that will handle failures and recover from them allowing developer to write failure-agnostic code.
 
+This framework works in two phases:
+\begin{enumerate}
+	\item When there are no failures in the network, it records all events that happen on the controller.
+	\item When a failure is detected, it performs the recovery int wo phases:
+		\begin{description}
+			\item[The replay phase] It creates a clean copy of the original controller, minus the failed nodes, and replay all events it has recorded, which leads to a new coherent controller state accounting for the failure.
+			\item[The reconfiguration phase] It pushes the new network state to the controller and the switches
+		\end{description}
+\end{enumerate}
+
+\textbf{Limitations:}
+\begin{itemize}
+	\item This is a "slow" process, as the configuration change has to be pushed from the controller to the switches after being signaled to the controller
+\end{itemize}
 
 \subsection{Enabling fast failure recovery in OpenFlow Networks}
 The topic of this article is to present a way of doing fast failure recovery in openflow networks.
