@@ -17,6 +17,19 @@ The main idea is to create an Euler cycle in the network, if the network does no
 \subsection{Automatic failure recovery for SDN}
 
 \subsection{Enabling fast failure recovery in OpenFlow Networks}
+The topic of this article is to present a way of doing fast failure recovery in openflow networks.
+The idea is to make sure that upon the acknowledgment of a failure by the controller, there is an efficient way to quickly inform the openflow switches.
 
+To do so, the article presents an algorithm on how to recover from a failure fast enough and on the whole network.
+For the method to work, there are several requierments from the controller. These are the following:
+\begin{itemize}
+	\item The controller must know about the failure
+	\item The controller must remember the paths it established
+	\item The controller must be able to compute a new path
+	\item The controller knows all the current flows in the network
+\end{itemize}
+The algorithm states that upon a link failure, a new path is computed for every path that goes through this link.
+Then, in each switch of the network that has an entry related to the old broken path, the entry is delete and new ones are pushed to establish the new path.
 
+The results in the article are restoration times of about 12ms. In large networks, the goal is to propose restoration times that are below 50ms. 
 \end{document}
