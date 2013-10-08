@@ -7,14 +7,22 @@
 
 \section{Reference articles}
 \subsection{Verifying forwarding plane connectivity}
-This article present a way to detect and locate a single arbitrary node or link failure.
-In order to do so, the controller will install multiple set of static routing rules in the switches.
+This article presents a way to detect and locate a single arbitrary node or link failure.
+In order to do so, the controller will install multiple sets of static routing rules in the switches.
 
-The first
-The main idea is to create an Euler cycle in the network, if the network does not allow one, the trick is to 
+The first set is used to detect whether there is a failure or not in the network.
+The main idea is to create an Euler cycle in the network ()if the network does not allow one, the trick is to duplicate all link and build a directed graph, which will force the existence of such a cycle). The controller will then attach itself to a node in the network and send a control message. This message will be then propagated around the cycle and will loop back to the controller if all links and node are operating properly.
+
+The second set of forwarding rules is used to locate the failure in the network. The controller will send a second control message which should loop back to the control after reaching a given node. The controller will keep repeating this operation, allowing it to perform a binary search over the nodes until it locates the link or node that has failed.
+
+\textbf{Limitations:}
+\begin{itemize}
+\item This only works in case of a single link or node failure. (As the same node can be in different places fo the cycle thus breaking it multiple times)
+\end{itemize}
 \subsection{FatTire: Declarative Fault Tolerance for SDN}
 
 \subsection{Automatic failure recovery for SDN}
+
 
 \subsection{Enabling fast failure recovery in OpenFlow Networks}
 
