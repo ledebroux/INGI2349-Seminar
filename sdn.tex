@@ -63,4 +63,14 @@ The algorithm states that upon a link failure, a new path is computed for every 
 Then, in each switch of the network that has an entry related to the old broken path, the entry is delete and new ones are pushed to establish the new path.
 
 The results in the article are restoration times of about 12ms. In large networks, the goal is to propose restoration times that are below 50ms. 
+
+\subsection{Scalable Fault Management for OpenFlow}
+Treats about \textbf{failure detection}. \textit{didnt read all of it yet}
+
+This paper present an alternative solution to LLDP to monitor the network health. To do so, the switches are extended to be able to send and to react to OAM (Operation, Administration, and Maintenance) packets.
+
+The advantage taken from this solution is that the controller does not have to worry about monitoring the network for failures anymore. If it had to do it, to be able to react within a certain limit of time (50ms), it would mean send a high amount of LLDP packets per second, per link and per end-to-end tunnel. This causes serious scalability issues in openflow.
+
+In this solution, if a failure occurs, it is detected without the need of the packet to get back to the sender. When a OAM packet is received on the egress side of a tunnel, the switch updates a state accordingly to the packet. For each tunnel monitored at the switch, there is a timer that is updated for each monitoring packet received. If that timer expires, the switch notifies the controller that the tunnel has failed.
+
 \end{document}
