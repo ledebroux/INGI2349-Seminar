@@ -73,4 +73,12 @@ The advantage taken from this solution is that the controller does not have to w
 
 In this solution, if a failure occurs, it is detected without the need of the packet to get back to the sender. When a OAM packet is received on the egress side of a tunnel, the switch updates a state accordingly to the packet. For each tunnel monitored at the switch, there is a timer that is updated for each monitoring packet received. If that timer expires, the switch notifies the controller that the tunnel has failed.
 
+\subsection{Network Architecture for joint Failure Recovery and Traffic Engineering}
+This paper presents a way to unify load balancing and failure recovery.
+
+It first starts by presenting this unified approach in a protocol agnostic way, then presents some experimental results and finally concludes by providing a few hints on how to deploy it in real networks (i.e. by using MPLS, Openflow, \ldots).
+
+The main idea is that routers should be simple forwarding switches, much like in the SDN paradigm. An external management system precomputes multiple paths for each pair of edge routers which have traffic between them. The routers in the network will them perform load balancing by splitting the traffic over the normal paths and the backup paths. If a path fails, the routers will simply remove the failed path from their FIB, and continue forwarding traffic over the remaining paths.
+
+In this system, failures are detected at a path level, by the ingress/egress routers, which will react to the failures themselves by rebalancing the traffic on the remaining path, ignoring the load informations. As this recovery is perform without this information, the edge routers do not need to broadcast real-time updates about the network state, which means that the reaction of a given router to a failure is deterministic. 
 \end{document}
