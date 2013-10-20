@@ -5,12 +5,20 @@
 \title{Failures in SDN}
 \begin{document}
 \maketitle
+\tableofcontents
 \section{Paper topics}
+\subsection{Field of application of the papers}
 \begin{itemize}
 	\item Failure discovery (Detecting failures);
 	\item Protection (Precomputing backup paths);
 	\item Restoration scheme (Updating flow table);
 	\item Recovery scheme (Computing new flow table).
+\end{itemize}
+\subsection{Issue treated}
+\begin{itemize}
+	\item Node failure;
+	\item Link failure;
+	\item Controller failure.
 \end{itemize}
 
 \section{Paper evaluation criterii}
@@ -33,7 +41,7 @@ This article presents a way to detect and locate a single arbitrary node or link
 In order to do so, the controller will install multiple sets of static routing rules in the switches.
 
 The first set is used to detect whether there is a failure or not in the network.
-The main idea is to create an Euler cycle in the network ()if the network does not allow one, the trick is to duplicate all link and build a directed graph, which will force the existence of such a cycle). The controller will then attach itself to a node in the network and send a control message. This message will be then propagated around the cycle and will loop back to the controller if all links and node are operating properly.
+The main idea is to create an Euler cycle in the network (if the network does not allow one, the trick is to duplicate all link and build a directed graph, which will force the existence of such a cycle). The controller will then attach itself to a node in the network and send a control message. This message will be then propagated around the cycle and will loop back to the controller if all links and node are operating properly.
 
 The second set of forwarding rules is used to locate the failure in the network. The controller will send a second control message which should loop back to the control after reaching a given node. The controller will keep repeating this operation, allowing it to perform a binary search over the nodes until it locates the link or node that has failed.
 
@@ -45,6 +53,17 @@ The second set of forwarding rules is used to locate the failure in the network.
 	\item[Load] The load is insignificant as the controller has a passive role.
 \end{itemize}
 
+\textbf{Issue treated}
+\begin{itemize}
+	\item Node failure
+	\item Link failure
+\end{itemize}
+
+\textbf{Topic}
+\begin{itemize}
+	\item Detection
+\end{itemize}
+
 \subsection{FatTire: Declarative Fault Tolerance for SDN}
 This paper introduces a new language constructs that enable a programmer to specify flow invariant, even in case of failure. This construction is then compiled in order to generate backup forwarding table entries using OpenFlow fast failover mechanism and installed on the switches.
 The paper describes the language syntax as well as its implementation.
@@ -54,6 +73,17 @@ The paper describes the language syntax as well as its implementation.
 	\item[Scalability] This will require switches to have huge forwarding tables if it wants to account for every possible failure (if the programmer enabled FatTire for all possible flows). Scales linearly with the number of interfaces and the number of flow destinations. It can handle arbitrary number of failures
 	\item[Time] Quite fast as the longest part of it is taken by the detection mechanism. The recovery itself is preinstalled in the flow tables.
 	\item[Load] Not constant load on the controller.
+\end{itemize}
+
+\textbf{Issue treated}
+\begin{itemize}
+	\item Node failure
+	\item Link failure
+\end{itemize}
+
+\textbf{Topic}
+\begin{itemize}
+	\item Protection
 \end{itemize}
 
 \subsection{Automatic failure recovery for SDN}
@@ -74,6 +104,17 @@ This framework works in two phases:
 	\item[Scalability] The model used to account for failure is always simpler than the real network, so it has virtually no impact.
 	\item[Time] This is a "slow" process, as the configuration change has to be pushed from the controller to the switches after being signaled to the controller.
 	\item[Load] Only when a failure occurs
+\end{itemize}
+
+\textbf{Issue treated}
+\begin{itemize}
+	\item Node failure
+	\item Link failure
+\end{itemize}
+
+\textbf{Topic}
+\begin{itemize}
+	\item Recovery
 \end{itemize}
 
 \subsection{Enabling fast failure recovery in OpenFlow Networks}
@@ -100,9 +141,18 @@ The results in the article are restoration times of about 12ms. In large network
 	\item[Load] Only when a failure occurs
 \end{itemize}
 
-\subsection{Scalable Fault Management for OpenFlow}
-Treats about \textbf{failure detection}. \textit{didnt read all of it yet}
+\textbf{Issue treated}
+\begin{itemize}
+	\item Node failure
+	\item Link failure
+\end{itemize}
 
+\textbf{Topic}
+\begin{itemize}
+	\item Restoration
+\end{itemize}
+
+\subsection{Scalable Fault Management for OpenFlow}
 This paper present an alternative solution to LLDP to monitor the network health. To do so, the switches are extended to be able to send and to react to OAM (Operation, Administration, and Maintenance) packets.
 
 The advantage taken from this solution is that the controller does not have to worry about monitoring the network for failures anymore. If it had to do it, to be able to react within a certain limit of time (50ms), it would mean send a high amount of LLDP packets per second, per link and per end-to-end tunnel. This causes serious scalability issues in openflow.
@@ -111,9 +161,20 @@ In this solution, if a failure occurs, it is detected without the need of the pa
 
 \textbf{Limitations:}
 \begin{itemize}
-	\item[Scalability] Does not scale well as the controller needs to remember all established paths.
-	\item[Time] The recovery process is "fast" as only few flow are recomputed, but it still needs to wait for the new flows to be installed.
-	\item[Load] Only when a failure occurs
+	\item[Scalability] The switches must be somehow intelligents, the advantage of having simple switches is lost.
+	\item[Time] There is no need for response from the targeted switch, the only time constraint is the time that must elapse before a link is considered broken.
+	\item[Overhead] No more than LLDP.
+\end{itemize}
+
+\textbf{Issue treated}
+\begin{itemize}
+	\item Node failure
+	\item Link failure
+\end{itemize}
+
+\textbf{Topic}
+\begin{itemize}
+	\item Detection
 \end{itemize}
 
 \subsection{Network Architecture for joint Failure Recovery and Traffic Engineering}
@@ -121,7 +182,26 @@ This paper presents a way to unify load balancing and failure recovery.
 
 It first starts by presenting this unified approach in a protocol agnostic way, then presents some experimental results and finally concludes by providing a few hints on how to deploy it in real networks (i.e. by using MPLS, Openflow, \ldots).
 
-The main idea is that routers should be simple forwarding switches, much like in the SDN paradigm. An external management system precomputes multiple paths for each pair of edge routers which have traffic between them. The routers in the network will them perform load balancing by splitting the traffic over the normal paths and the backup paths. If a path fails, the routers will simply remove the failed path from their FIB, and continue forwarding traffic over the remaining paths.
+The main idea is that routers should be simple forwarding switches, much like in the SDN paradigm. An external management system precomputes multiple paths for each pair of edge routers which have traffic between them. The routers in the network will then perform load balancing by splitting the traffic over the normal paths and the backup paths. If a path fails, the routers will simply remove the failed path from their FIB, and continue forwarding traffic over the remaining paths.
 
 In this system, failures are detected at a path level, by the ingress/egress routers, which will react to the failures themselves by rebalancing the traffic on the remaining path, ignoring the load informations. As this recovery is perform without this information, the edge routers do not need to broadcast real-time updates about the network state, which means that the reaction of a given router to a failure is deterministic. 
+
+\textbf{Limitations:}
+\begin{itemize}
+	\item[Scalability] The switches must be able to remember several paths to each destination. 
+	\item[Time] Only time consuming when the paths must be computed. Takes no time when a link goes down.
+\end{itemize}
+
+\textbf{Issue treated}
+\begin{itemize}
+	\item Node failure
+	\item Link failure
+\end{itemize}
+
+\textbf{Topic}
+\begin{itemize}
+	\item Protection
+	\item Recovery
+\end{itemize}
+
 \end{document}
