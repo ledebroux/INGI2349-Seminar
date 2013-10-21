@@ -15,6 +15,25 @@ Software Defined Network, Protection, Restoration, Failure Detection.
 \section{Introduction}
 
 \section{Detecting failures}
+There are several kind of failures that can affect a network state. Nodes can crash, links can break, resulting in flow which are no longer available. Detecting those failures plays a crucial role for the network to provide good connectivity.
+
+This can be achieved by any agent in the network, depending on the desired performance, the available hardware and level of failures.
+
+\subsection{Controller based detection}
+A first approach is to assign the responsibility of the detection to the controller. A naive and inefficient solution would be to have it probe each switch (on each link) in the network using some kind of hello messages (LLDP, \ldots). This solution does not scale well at all, as the controller has to send an exponential number of messages wrt. the link count (at a sufficient rate to ensure a fast enough detection).
+
+A better approach is proposed by \cite{2013arXiv1308.4465K}. The controller computes an Eulerian cycle across all links under its responsibility, and sends a control message over that cycle using static forwarding rules pre-installed on the switches. As soon as that control message fails to come back, it can perform a binary search using another of static rules in order to locate the link or node that has failed.
+
+The main limitation of this approach is that it cannot handle more than a single link or node failure, as this would break the cycle in multiple places and unlike when a single node was failing, this time the cycle would be broken at multiple places for different reasons, would render the binary search unable to detect both failures (it would only detect one).
+
+\subsection{Switch based detection}
+Another approach assigns failure detection to the switches. While these methods are usually much faster, their main drawback is that later on the controller still has to be reached in order to be notified that a failure happened, to let it respond to it, which might induce slower recovery in some cases (e.g. in small networks where LLDP could be used at a very fast rate).
+
+Such system is presented in \cite{6364688}. This paper presents a way to monitor the health of a given tunnel at the egress side, thus in one direction. When receiving OAM messages from the switches along the tunnel, the switch is able to update its state and as soon as it has not received such message in a certain time, it can notify the controller that the path has failed.
+
+Another solution which could be used to monitor the network health at a given is to simply use BFD on the switches (either by piggybacking it in the data packets, or by generating new packets) and then to notify the controller in case of error.
+
+As these methods are performed at the speed of the data plane, the detection itself is very fast, and the overhead on the network is quite low (although it might require more complex switches).
 
 \section{Handling the failures}
 \subsection{By using path protection}
@@ -26,9 +45,10 @@ Software Defined Network, Protection, Restoration, Failure Detection.
 \bibliographystyle{IEEEtran}
 \nocite{*}
 \bibliography{biblio}
+
 \appendix
-\section{Paper topics}
-\subsection{Verifying forwarding plane connectivity}
+Short reviews of the cited papers.
+\subsection{Verifying forwarding plane connectivity \cite{2013arXiv1308.4465K}}
 This article presents a way to detect and locate a single arbitrary node or link failure.
 In order to do so, the controller will install multiple sets of static routing rules in the switches.
 
@@ -56,7 +76,7 @@ The second set of forwarding rules is used to locate the failure in the network.
 	\item Detection
 \end{itemize}
 
-\subsection{FatTire: Declarative Fault Tolerance for SDN}
+\subsection{FatTire: Declarative Fault Tolerance for SDN \cite{Reitblatt:2013:FDF:2491185.2491187}}
 This paper introduces a new language constructs that enable a programmer to specify flow invariant, even in case of failure. This construction is then compiled in order to generate backup forwarding table entries using OpenFlow fast failover mechanism and installed on the switches.
 The paper describes the language syntax as well as its implementation.
 
@@ -78,7 +98,7 @@ The paper describes the language syntax as well as its implementation.
 	\item Protection
 \end{itemize}
 
-\subsection{Automatic failure recovery for SDN}
+\subsection{Automatic failure recovery for SDN \cite{Kuzniar:2013:AFR:2491185.2491218}}
 This paper advocates the need to separate the failure recovery mechanism on the controller from the forwarding and policy logic. It presents such a framework which is built for the POX controller, and provides a simple module that will handle failures and recover from them allowing developer to write failure-agnostic code.
 
 This framework works in two phases:
@@ -109,7 +129,7 @@ This framework works in two phases:
 	\item Recovery
 \end{itemize}
 
-\subsection{Enabling fast failure recovery in OpenFlow Networks}
+\subsection{Enabling fast failure recovery in OpenFlow Networks \cite{2911632}}
 The topic of this article is to present a way of doing fast failure recovery in openflow networks.
 The idea is to make sure that upon the acknowledgment of a failure by the controller, there is an efficient way to quickly inform the openflow switches.
 
@@ -144,7 +164,7 @@ The results in the article are restoration times of about 12ms. In large network
 	\item Restoration
 \end{itemize}
 
-\subsection{Scalable Fault Management for OpenFlow}
+\subsection{Scalable Fault Management for OpenFlow \cite{6364688}}
 This paper present an alternative solution to LLDP to monitor the network health. To do so, the switches are extended to be able to send and to react to OAM (Operation, Administration, and Maintenance) packets.
 
 The advantage taken from this solution is that the controller does not have to worry about monitoring the network for failures anymore. If it had to do it, to be able to react within a certain limit of time (50ms), it would mean send a high amount of LLDP packets per second, per link and per end-to-end tunnel. This causes serious scalability issues in openflow.
@@ -169,7 +189,7 @@ In this solution, if a failure occurs, it is detected without the need of the pa
 	\item Detection
 \end{itemize}
 
-\subsection{Network Architecture for joint Failure Recovery and Traffic Engineering}
+\subsection{Network Architecture for joint Failure Recovery and Traffic Engineering \cite{Suchara:2011:NAJ:1993744.1993756}}
 This paper presents a way to unify load balancing and failure recovery.
 
 It first starts by presenting this unified approach in a protocol agnostic way, then presents some experimental results and finally concludes by providing a few hints on how to deploy it in real networks (i.e. by using MPLS, Openflow, \ldots).
@@ -196,7 +216,7 @@ In this system, failures are detected at a path level, by the ingress/egress rou
 	\item Recovery
 \end{itemize}
 
-\subsection{Ensuring connectivity via data plane mechanisms}
+\subsection{Ensuring connectivity via data plane mechanisms \cite{Liu:2013:ECV:2482626.2482639}}
 This article presents a way to speed up connectivity by assigning it to the data plane.
 
 In the case of failures, the control plane is typicaly responsible for the recovery and is slower than the data plane by several orders of magnitude. What is proposed here is to delagate to the data plane the task of ensuring connectivity from point to point, so that, in the event of a failure, the recovery is done at the speed of the data plane.
@@ -218,9 +238,11 @@ The control plane still keeps a role, that is to ensure that the paths that are 
 
 \textbf{Topic}
 \begin{itemize}
-	\item Detection
-	\item Protection
-	\item Restoration
 	\item Recovery
 \end{itemize}
+
+\subsection{OpenFlow: Meeting carrier-grade recovery requirements \cite{Sharma:2013:OMC:2445634.2445903}}
+This paper presents a performance evaluation of the standard technique used to handle failures in Openflow networks in order to meet carrier grade requirements: sub 50ms recovery time (thus mainly using path protection technique).
+
+This paper does not present new techniques, but rather focuses on the evaluation of the performance of the fast-failover mechanism in Openflow
 \end{document}
