@@ -17,7 +17,7 @@ The issue of treating failures is core in the actual networks as well as in the 
 
 The basic way of doing so in the SDN's is to constantly probe the network health form the controller to the switches and links, and react accordingly. Protection can be also done by adding fast restoration entries in the flow tables so that the switches can quickly react to a failure.
 
-In this review, we'll go through the process of failures in a network in a chronological way. Starting with the detection, how to avoid the load on the controller and the massive overhead. Then we'll talk about link and flow protection, how to avoid to violate the policies on the network, and how to keep the flow tables from growing exponentially. Finally, we'll talk about recovery and what strategy to adopt controller-side to propose efficient recovery and restoration.
+In this survey, we'll go through the process of failures in a network in a chronological way. Starting with the detection, how to avoid the load on the controller and the massive overhead. Then we'll talk about link and flow protection, how to avoid to violate the policies on the network, and how to keep the flow tables from growing exponentially. Finally, we'll talk about recovery and what strategy to adopt controller-side to propose efficient recovery and restoration.
 
 \section{Detecting failures}
 There are several kind of failures that can affect a network state. Nodes can crash, links can break, resulting in flow which are no longer available. Detecting those failures plays a crucial role for the network to provide good connectivity.
