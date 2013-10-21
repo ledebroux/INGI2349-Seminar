@@ -204,4 +204,32 @@ In this system, failures are detected at a path level, by the ingress/egress rou
 	\item Recovery
 \end{itemize}
 
+\subsection{Ensuring connectivity via data plane mechanisms}
+This article presents a way to speed up connectivity by assigning it to the data plane.
+
+In the case of failures, the control plane is typicaly responsible for the recovery and is slower than the data plane by several orders of magnitude. What is proposed here is to delagate to the data plane the task of ensuring connectivity from point to point, so that, in the event of a failure, the recovery is done at the speed of the data plane.
+
+To do so, they implement a variant of the Gafni-Bertsekas link reversal algorithm to build a directed acyclic graph for each destination, where each destination is a sink (no outgoing edges). That way, any path through that tree leads to the destination.
+
+The control plane still keeps a role, that is to ensure that the paths that are used are optimal (eg: shortest paths). The algorithm used is incremental and aims at leading the networks towards shortest paths.
+
+\textbf{Limitations:}
+\begin{itemize}
+	\item[Scalability] The aims of sdn is to provide a splitted way of using the data plane and control plane. Here, the bond between them is much stronger.
+\end{itemize}
+
+\textbf{Issue treated}
+\begin{itemize}
+	\item Node failure
+	\item Link failure
+\end{itemize}
+
+\textbf{Topic}
+\begin{itemize}
+	\item Detection
+	\item Protection
+	\item Restoration
+	\item Recovery
+\end{itemize}
+
 \end{document}
