@@ -4,37 +4,30 @@
 \title{A Survey of Failure Handling in SDN}
 \begin{document}
 \maketitle
-\tableofcontents
+\begin{abstract}
+
+\end{abstract}
+
+\begin{IEEEkeywords}
+Software Defined Network, Protection, Restoration, Failure Detection.
+\end{IEEEkeywords}
+
+\section{Introduction}
+
+\section{Detecting failures}
+
+\section{Handling the failures}
+\subsection{By using path protection}
+
+\subsection{By using restoration techniques}
+
+\section{Conclusion}
+
+\bibliographystyle{IEEEtran}
+\nocite{*}
+\bibliography{biblio}
+\appendix
 \section{Paper topics}
-\subsection{Field of application of the papers}
-\begin{itemize}
-	\item Failure discovery (Detecting failures);
-	\item Protection (Precomputing backup paths);
-	\item Restoration scheme (Updating flow table);
-	\item Recovery scheme (Computing new flow table).
-\end{itemize}
-\subsection{Issue treated}
-\begin{itemize}
-	\item Node failure;
-	\item Link failure;
-	\item Controller failure.
-\end{itemize}
-
-\section{Paper evaluation criterii}
-\begin{itemize}
-	\item Scalability:
-		\begin{itemize}
-			\item wrt. the number of nodes;
-			\item the number of links;
-			\item the number of failures;
-			\item the number of entries in the flow tables.
-		\end{itemize}
-	\item Time elapsed for the network to be in a recovered state
-	\item Overhead of failure detection methods
-	\item Load on the controller
-\end{itemize}
-
-\section{Reference articles}
 \subsection{Verifying forwarding plane connectivity}
 This article presents a way to detect and locate a single arbitrary node or link failure.
 In order to do so, the controller will install multiple sets of static routing rules in the switches.
@@ -46,10 +39,10 @@ The second set of forwarding rules is used to locate the failure in the network.
 
 \textbf{Limitations:}
 \begin{itemize}
-	\item[Scalability] This only works in case of a single link or node failure. (As the same node can be in different places fo the cycle thus breaking it multiple times). This is suitable to networks of arbitrary size. Detecting a failure requires up to 6 times the number of links, and takes up to log(\#number of links) control messages.
-	\item[Time] This does not perform recovery, but detection. The detection itself might be 'slow' wrt. forwarding plane speed depending on the size of the network.
-	\item[Overhead] Extremely small as very few control messages have to be sent when no failures are present.
-	\item[Load] The load is insignificant as the controller has a passive role.
+	\item \textbf{Scalability} This only works in case of a single link or node failure. (As the same node can be in different places fo the cycle thus breaking it multiple times). This is suitable to networks of arbitrary size. Detecting a failure requires up to 6 times the number of links, and takes up to log(\#number of links) control messages.
+	\item \textbf{Time} This does not perform recovery, but detection. The detection itself might be 'slow' wrt. forwarding plane speed depending on the size of the network.
+	\item \textbf{Overhead} Extremely small as very few control messages have to be sent when no failures are present.
+	\item \textbf{Load} The load is insignificant as the controller has a passive role.
 \end{itemize}
 
 \textbf{Issue treated}
@@ -69,9 +62,9 @@ The paper describes the language syntax as well as its implementation.
 
 \textbf{Limitations:}
 \begin{itemize}
-	\item[Scalability] This will require switches to have huge forwarding tables if it wants to account for every possible failure (if the programmer enabled FatTire for all possible flows). Scales linearly with the number of interfaces and the number of flow destinations. It can handle arbitrary number of failures
-	\item[Time] Quite fast as the longest part of it is taken by the detection mechanism. The recovery itself is preinstalled in the flow tables.
-	\item[Load] Not constant load on the controller.
+	\item \textbf{Scalability} This will require switches to have huge forwarding tables if it wants to account for every possible failure (if the programmer enabled FatTire for all possible flows). Scales linearly with the number of interfaces and the number of flow destinations. It can handle arbitrary number of failures
+	\item \textbf{Time} Quite fast as the longest part of it is taken by the detection mechanism. The recovery itself is preinstalled in the flow tables.
+	\item \textbf{Load} Not constant load on the controller.
 \end{itemize}
 
 \textbf{Issue treated}
@@ -93,16 +86,16 @@ This framework works in two phases:
 	\item When there are no failures in the network, it records all events that happen on the controller.
 	\item When a failure is detected, it performs the recovery in two phases:
 		\begin{description}
-			\item[The replay phase] It creates a clean copy of the original controller, minus the failed nodes, and replay all events it has recorded, which leads to a new coherent controller state accounting for the failure.
-			\item[The reconfiguration phase] It pushes the new network state to the controller and the switches
+			\item \textbf{The replay phase} It creates a clean copy of the original controller, minus the failed nodes, and replay all events it has recorded, which leads to a new coherent controller state accounting for the failure.
+			\item \textbf{The reconfiguration phase} It pushes the new network state to the controller and the switches
 		\end{description}
 \end{enumerate}
 
 \textbf{Limitations:}
 \begin{itemize}
-	\item[Scalability] The model used to account for failure is always simpler than the real network, so it has virtually no impact.
-	\item[Time] This is a "slow" process, as the configuration change has to be pushed from the controller to the switches after being signaled to the controller.
-	\item[Load] Only when a failure occurs
+	\item \textbf{Scalability} The model used to account for failure is always simpler than the real network, so it has virtually no impact.
+	\item \textbf{Time} This is a "slow" process, as the configuration change has to be pushed from the controller to the switches after being signaled to the controller.
+	\item \textbf{Load} Only when a failure occurs
 \end{itemize}
 
 \textbf{Issue treated}
@@ -135,9 +128,9 @@ The results in the article are restoration times of about 12ms. In large network
 
 \textbf{Limitations:}
 \begin{itemize}
-	\item[Scalability] Does not scale well as the controller needs to remember all established paths.
-	\item[Time] The recovery process is "fast" as only few flow are recomputed, but it still needs to wait for the new flows to be installed.
-	\item[Load] Only when a failure occurs
+	\item \textbf{Scalability} Does not scale well as the controller needs to remember all established paths.
+	\item \textbf{Time} The recovery process is "fast" as only few flow are recomputed, but it still needs to wait for the new flows to be installed.
+	\item \textbf{Load} Only when a failure occurs
 \end{itemize}
 
 \textbf{Issue treated}
@@ -160,9 +153,9 @@ In this solution, if a failure occurs, it is detected without the need of the pa
 
 \textbf{Limitations:}
 \begin{itemize}
-	\item[Scalability] The switches must be somehow intelligents, the advantage of having simple switches is lost.
-	\item[Time] There is no need for response from the targeted switch, the only time constraint is the time that must elapse before a link is considered broken.
-	\item[Overhead] No more than LLDP.
+	\item \textbf{Scalability} The switches must be somehow intelligents, the advantage of having simple switches is lost.
+	\item \textbf{Time} There is no need for response from the targeted switch, the only time constraint is the time that must elapse before a link is considered broken.
+	\item \textbf{Overhead} No more than LLDP.
 \end{itemize}
 
 \textbf{Issue treated}
@@ -187,8 +180,8 @@ In this system, failures are detected at a path level, by the ingress/egress rou
 
 \textbf{Limitations:}
 \begin{itemize}
-	\item[Scalability] The switches must be able to remember several paths to each destination. 
-	\item[Time] Only time consuming when the paths must be computed. Takes no time when a link goes down.
+	\item \textbf{Scalability} The switches must be able to remember several paths to each destination. 
+	\item \textbf{Time} Only time consuming when the paths must be computed. Takes no time when a link goes down.
 \end{itemize}
 
 \textbf{Issue treated}
@@ -214,7 +207,7 @@ The control plane still keeps a role, that is to ensure that the paths that are 
 
 \textbf{Limitations:}
 \begin{itemize}
-	\item[Scalability] The aims of sdn is to provide a splitted way of using the data plane and control plane. Here, the bond between them is much stronger.
+	\item \textbf{Scalability} The aims of sdn is to provide a splitted way of using the data plane and control plane. Here, the bond between them is much stronger.
 \end{itemize}
 
 \textbf{Issue treated}
@@ -230,5 +223,4 @@ The control plane still keeps a role, that is to ensure that the paths that are 
 	\item Restoration
 	\item Recovery
 \end{itemize}
-
 \end{document}
