@@ -41,7 +41,11 @@ Another solution which could be used to monitor the network health at a given is
 As these methods are performed at the speed of the data plane, the detection itself is very fast, and the overhead on the network is quite low (although it might require more complex switches).
 
 \section{Handling the failures}
+Once a failure has been detected, the network has to react in order to be able to fulfil its role again, withstanding the failure. There are two kind of reactions which are possible, depending on the time scale at which we want the recovery to happen.
 \subsection{By using path protection}
+This approach consists of precomputing backup path for the network flows, and to install them on the switches, which can then use them as soon as a failure is detected, thus avoiding the need for any computation from the controller. Path protection in Openflow networks is achieved by using use of the fast-failover group of flow tables.
+
+The main issue by this technique lies in the fact that it is not possible to install all possible backup path for each link (or flow), as the size of the flow tables is limited.
 
 \subsection{By using restoration techniques}
 
@@ -249,5 +253,8 @@ The control plane still keeps a role, that is to ensure that the paths that are 
 \subsection{OpenFlow: Meeting carrier-grade recovery requirements \cite{Sharma:2013:OMC:2445634.2445903}}
 This paper presents a performance evaluation of the standard technique used to handle failures in Openflow networks in order to meet carrier grade requirements: sub 50ms recovery time (thus mainly using path protection technique).
 
-This paper does not present new techniques, but rather focuses on the evaluation of the performance of the fast-failover mechanism in Openflow
+This paper does not present new techniques, but rather focuses on the evaluation of the performance of the fast-failover mechanism in Openflow. 
+
+\textbf{Limitation of the paper:}
+Those performance are the result of simulations, in a controller environment. Furthermore, due to how the simulation was ran, they had troubles identifying the exact at which links were brought down to simulate a failure, thus impacting the precision of their measurements.
 \end{document}
