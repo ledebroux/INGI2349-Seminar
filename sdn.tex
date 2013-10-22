@@ -15,9 +15,9 @@ Software Defined Network, Protection, Restoration, Failure Detection.
 \section{Introduction}
 The issue of treating failures is core in the actual networks as well as in the SDN paradigm. As we want the networks to be efficient and robust, lots of research are done to tackle the problem of failure recovery in better ways than the naive ones.
 
-The basic way of doing so in the SDN's is to constantly probe the network health form the controller to the switches and links, and react accordingly. Protection can be also done by adding fast restoration entries in the flow tables so that the switches can quickly react to a failure.
+The basic way of doing so in the SDN's is to constantly probe the network health from the controller to the switches as well as the links, and to react accordingly. Protection can be also done by adding fast restoration entries in the flow tables so that the switches can quickly react to a failure.
 
-In this survey, we'll go through the process of failures in a network in a chronological way. Starting with the detection, how to avoid the load on the controller and the massive overhead. Then we'll talk about link and flow protection, how to avoid to violate the policies on the network, and how to keep the flow tables from growing exponentially. Finally, we'll talk about recovery and what strategy to adopt controller-side to propose efficient recovery and restoration.
+In this survey, we'll go through the process of handling failures in a network in a chronological way. Starting with the detection, how to avoid the load on the controller and the massive overhead. Then we'll talk about link and flow protection, how to avoid violating the policies on the network, and how to keep the flow tables from growing exponentially. Finally, we'll talk about recovery and what strategy to adopt on the controller-side to propose efficient recovery and restoration.
 
 \section{Detecting failures}
 There are several kind of failures that can affect a network state. Nodes can crash, links can break, resulting in flow which are no longer available. Detecting those failures plays a crucial role for the network to provide good connectivity.
@@ -25,7 +25,7 @@ There are several kind of failures that can affect a network state. Nodes can cr
 This can be achieved by any agent in the network, depending on the desired performance, the available hardware and level of failures.
 
 \subsection{Controller based detection}
-A first approach is to assign the responsibility of the detection to the controller. A naive and inefficient solution would be to have it probe each switch (on each link) in the network using some kind of hello messages (LLDP, \ldots). This solution does not scale well at all, as the controller has to send an exponential number of messages wrt. the link count (at a sufficient rate to ensure a fast enough detection).
+A first approach is to assign the responsibility of the detection to the controller. A naive and inefficient solution would be to have it probe each switch (on each link) in the network using some kind of hello messages (LLDP, \ldots). This solution does not scale well at all, as the controller has to send a linearly increasing number of messages wrt. the link count, the node count and the flow count, this at a sufficient rate to ensure a fast enough detection.
 
 A better approach is proposed by \cite{2013arXiv1308.4465K}. The controller computes an Eulerian cycle across all links under its responsibility, and sends a control message over that cycle using static forwarding rules pre-installed on the switches. As soon as that control message fails to come back, it can perform a binary search using another of static rules in order to locate the link or node that has failed.
 
@@ -36,16 +36,16 @@ Another approach assigns failure detection to the switches. While these methods 
 
 Such system is presented in \cite{6364688}. This paper presents a way to monitor the health of a given tunnel at the egress side, thus in one direction. When receiving OAM messages from the switches along the tunnel, the switch is able to update its state and as soon as it has not received such message in a certain time, it can notify the controller that the path has failed.
 
-Another solution which could be used to monitor the network health at a given is to simply use BFD on the switches (either by piggybacking it in the data packets, or by generating new packets) and then to notify the controller in case of error.
+Another solution which could be used to monitor the network health at a given time is to simply use BFD on the switches (either by piggybacking it in the data packets, or by generating new packets) and then to notify the controller in case of error.
 
-As these methods are performed at the speed of the data plane, the detection itself is very fast, and the overhead on the network is quite low (although it might require more complex switches).
+As these methods are performed at the speed of the data plane, the detection itself is very fast, and the overhead on the network itself and on the controller is quite low (although it might require more complex switches).
 
 \section{Handling the failures}
 Once a failure has been detected, the network has to react in order to be able to fulfil its role again, withstanding the failure. There are two kind of reactions which are possible, depending on the time scale at which we want the recovery to happen.
 \subsection{By using path protection}
-This approach consists of precomputing backup path for the network flows, and to install them on the switches, which can then use them as soon as a failure is detected, thus avoiding the need for any computation from the controller. Path protection in Openflow networks is achieved by using use of the fast-failover group of flow tables.
+This approach consists of pre-computing backup path for the network flows, and to install them on the switches, which can then use them as soon as a failure is detected, thus avoiding the need for any computation from the controller. Path protection in Openflow networks is achieved by using use of the fast-failover group of flow tables.
 
-The main issue by this technique lies in the fact that it is not possible to install all possible backup path for each link (or flow), as the size of the flow tables is limited.
+The main issue by this technique lies in the fact that it is not possible to install all possible backup paths for each link (or flow), as the size of the flow tables is limited.
 
 \subsection{By using restoration techniques}
 
