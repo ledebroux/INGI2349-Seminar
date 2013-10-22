@@ -45,9 +45,14 @@ Once a failure has been detected, the network has to react in order to be able t
 \subsection{By using path protection}
 This approach consists of pre-computing backup path for the network flows, and to install them on the switches, which can then use them as soon as a failure is detected, thus avoiding the need for any computation from the controller. Path protection in Openflow networks is achieved by using use of the fast-failover group of flow tables.
 
-The main issue by this technique lies in the fact that it is not possible to install all possible backup paths for each link (or flow), as the size of the flow tables is limited.
+The main issue by this techniques lies in the fact that it is not possible to install all possible backup paths for each link (or flow), as the size of the flow tables is limited.
+
+This leads to a solution proposed in \cite{Reitblatt:2013:FDF:2491185.2491187}. It proposes a way for the network programmer to express policies on paths, which must be enforced at all time, even in case of failure (e.g. enforcing that all outgoing traffic must go through the firewall except for the DMZ). This framework then computes all possible backup paths meeting these invariants for the flows needing protection. In the end, this reduces the overall number of backup paths which have to be installed on the switches, as only the flows for which the programmer explicitly provided invariants will be protected.
+
+A complementary approach is presented in \cite{Suchara:2011:NAJ:1993744.1993756}. This paper argues that load balancing and path protection should be treated as one problem. A management system has to compute backup paths for each flows, and those should be used all the time in order to achieve load balancing. Upon a failure, the switches will simply stop using the path that has broke and keep performing load balancing with the remaining ones. It also notifies the management system about it, which can then react to provide a more optimal routing solution in the network. This paper is independent from the routing paradigm used, but using it within SDN's is straightforward.
 
 \subsection{By using restoration techniques}
+Restoration techniques, albeit usually slower, provide the most optimal routing configuration once a failure has occurred.
 
 \section{Conclusion}
 
