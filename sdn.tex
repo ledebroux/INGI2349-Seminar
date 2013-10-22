@@ -43,7 +43,7 @@ As these methods are performed at the speed of the data plane, the detection its
 \section{Handling the failures}
 Once a failure has been detected, the network has to react in order to be able to fulfil its role again, withstanding the failure. There are two kind of reactions which are possible, depending on the time scale at which we want the recovery to happen.
 \subsection{By using path protection}
-This approach consists of pre-computing backup path for the network flows, and to install them on the switches, which can then use them as soon as a failure is detected, thus avoiding the need for any computation from the controller. Path protection in Openflow networks is achieved by using use of the fast-failover group of flow tables.
+This approach consists of pre-computing backup path for the network flows, and to install them on the switches, which can then use them as soon as a failure is detected, thus avoiding the need for any computation from the controller. Path protection in Openflow networks is achieved by using use of the fast-failover group of flow tables. According to \cite{Sharma:2013:OMC:2445634.2445903}, using this Openflow functionality can already provide sub 50ms recovery time although this was only done in simulations.
 
 The main issue by this techniques lies in the fact that it is not possible to install all possible backup paths for each link (or flow), as the size of the flow tables is limited.
 
@@ -52,8 +52,13 @@ This leads to a solution proposed in \cite{Reitblatt:2013:FDF:2491185.2491187}. 
 A complementary approach is presented in \cite{Suchara:2011:NAJ:1993744.1993756}. This paper argues that load balancing and path protection should be treated as one problem. A management system has to compute backup paths for each flows, and those should be used all the time in order to achieve load balancing. Upon a failure, the switches will simply stop using the path that has broke and keep performing load balancing with the remaining ones. It also notifies the management system about it, which can then react to provide a more optimal routing solution in the network. This paper is independent from the routing paradigm used, but using it within SDN's is straightforward.
 
 \subsection{By using restoration techniques}
-Restoration techniques, albeit usually slower, provide the most optimal routing configuration once a failure has occurred.
+Restoration techniques, albeit usually slower as on-the-fly computation is performed, provide the most optimal routing configuration once a failure has occurred.
 
+There are no default restoration behaviour in Openflow: once a path has failed, the packets eventually get lost in the network until the flow gets removed from the ingress switches (which will cause a new flow computation from the controller). This is a very slow process, which will cause all the packets to be dropped until a new flow is established.
+
+In order to achieve some form of traffic recovery, the controller has to somehow be aware of the existing flows. This is thus the network programmer task to implements error recovery mechanisms. This is precisely what \cite{Kuzniar:2013:AFR:2491185.2491218} argue against. It claims that error handling code and policies are two separate tasks, and that mixing both will increase code complexity as well as increase to risk of bugs. In order to avoid that issue, it proposes a module for the POX controller, which will perform restoration on its own, without any code from the network programmer. The principle is to record all events happening on the controller in-between failures. Once a failure occurs, it starts a new controller instance in a virtual machine, with the same topology as before minus the failed links and nodes, on top of which it replays all events it has recorded. It then finally proceeds to change the controller state to the virtual one and pushes all new flow tables. This is still an expensive process, but has the benefits of providing an optimal solution given the current network state.
+
+Another approach which has a much lower footprint on the controller is presented in \cite{2911632}. Unlike the previous solution, this does perform a complete recomputation of the flows. Instead it requires from the controller to remember all established paths in the network. Once a failure occurs, it then proceeds to recompute only the paths affected by the failure. It does not provide a way to perform this computation, and the obtained solution is not the optimal one as only few flows are adapted to the new network configuration.
 \section{Conclusion}
 
 \bibliographystyle{IEEEtran}
