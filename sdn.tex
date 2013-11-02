@@ -65,7 +65,13 @@ In order to achieve some form of traffic recovery, the controller has to somehow
 Another approach which has a much lower footprint on the controller is presented in \cite{2911632}. Unlike the previous solution, this does perform a complete recomputation of the flows. Instead it requires from the controller to remember all established paths in the network. Once a failure occurs, it then proceeds to recompute only the paths affected by the failure. It does not provide a way to perform this computation, and the obtained solution is not the optimal one as only few flows are adapted to the new network configuration.
 
 \section{Conclusion}
+If we were to choose a solution in the light of the approaches given in the studied papers, we would choose the following aggregated solution.
 
+Regarding the detection of the failures, the solution presented in \cite{6364688} as it avoid some huge load on the controller due to the large amount of messages that would have to be sent. The issue that the controller must be reach when a failure occured can be overcome by a good protection mechanism. 
+
+For that matter, the two approaches proposed in \cite{Reitblatt:2013:FDF:2491185.2491187} and \cite{Suchara:2011:NAJ:1993744.1993756} can be combined to propose policies-compliant protection paths on the switches and offers the advantage of being about to use them to perform some load balancing.
+
+Eventually, we would combined the solutions presented in \cite{Kuzniar:2013:AFR:2491185.2491218} and \cite{2911632}. The first one goal would be to compute optimal recovery paths, while the second one would offer non-optimal fast ones to cope with the time that the recomputation of all paths would take. By using both of them, we can take the benefits of either of those approach while limiting their drawbacks.
 
 \bibliographystyle{IEEEtran}
 \nocite{*}
