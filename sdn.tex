@@ -5,7 +5,11 @@
 \begin{document}
 \maketitle
 \begin{abstract}
+The issue of treating failures is core in the actual networks as well as in the SDN paradigm. As we want the networks to be efficient and robust, lots of research are done to tackle the problem of failure recovery in better ways than the naive ones.
 
+The basic way of doing so in the SDN's is to constantly probe the network health from the controller to the switches as well as the links, and to react accordingly. Protection can be also done by adding fast restoration entries in the flow tables so that the switches can quickly react to a failure.
+
+In this survey, we'll go through the process of handling failures in a network in a chronological way. Starting with the detection, how to avoid the load on the controller and the massive overhead. Then we'll talk about link and flow protection, how to avoid violating the policies on the network, and how to keep the flow tables from growing exponentially. Finally, we'll talk about recovery and what strategy to adopt on the controller-side to propose efficient recovery and restoration.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -13,11 +17,11 @@ Software Defined Network, Protection, Restoration, Failure Detection.
 \end{IEEEkeywords}
 
 \section{Introduction}
-The issue of treating failures is core in the actual networks as well as in the SDN paradigm. As we want the networks to be efficient and robust, lots of research are done to tackle the problem of failure recovery in better ways than the naive ones.
+Being able to handle failure correctly is an important step towards having a deployable solution. OpenFlow, is a spreading technology that deserves to have efficient ways of doing so. It has been introduced by Stanford University and aims at sepatating datap plane and control plane. Currently, most routers contain their own FIB (Forwarding Information Base), allowing them to forward the packets they receive. OpenFlow gives a solution where that FIB is somehow replaced by a FlowTable in switches that do not compute paths anymore. That work is performed by one or more controllers in charge of several underlying switches. Those controllers can perform addition, deletion and modification on the entries in the FlowTable.
 
-The basic way of doing so in the SDN's is to constantly probe the network health from the controller to the switches as well as the links, and to react accordingly. Protection can be also done by adding fast restoration entries in the flow tables so that the switches can quickly react to a failure.
+Using this approach, data plane and control plane are completely separeted, as the forwarding is done by the switches, that are now way simpler and cheaper, and as the routing is performed by the controller. For this to work, upon receiving a packet, of the receiving switch doesn't know how to forward it, it sends it to the controller that decides what to do and tells it to the switch. Such a separation allow more flexible routing policies and ensures that adding new function is possible by simply programming the controller.
 
-In this survey, we'll go through the process of handling failures in a network in a chronological way. Starting with the detection, how to avoid the load on the controller and the massive overhead. Then we'll talk about link and flow protection, how to avoid violating the policies on the network, and how to keep the flow tables from growing exponentially. Finally, we'll talk about recovery and what strategy to adopt on the controller-side to propose efficient recovery and restoration.
+As the controller is in charge of the control plane, it is its job to deal with failures and react to their occurences. To tackle this issue, several fields must be studied. They are the detection of the failures, the protection of the links, nodes and paths, and the restoration after a failure occured. OpenFlow does provide some protection by allowing to add in the FlowTable some restoration entries that can be switch to in the case of the failure of the used one. Finding efficient ways of dealing with failures remains an open problem and generates failure realted papers. This survey aims at comparing several solutions in the different fields that the failure issue covers (detection, protection and restoration).
 
 \section{Detecting failures}
 There are several kind of failures that can affect a network state. Nodes can crash, links can break, resulting in flow which are no longer available. Detecting those failures plays a crucial role for the network to provide good connectivity.
@@ -59,7 +63,9 @@ There are no default restoration behaviour in Openflow: once a path has failed, 
 In order to achieve some form of traffic recovery, the controller has to somehow be aware of the existing flows. This is thus the network programmer task to implements error recovery mechanisms. This is precisely what \cite{Kuzniar:2013:AFR:2491185.2491218} argue against. It claims that error handling code and policies are two separate tasks, and that mixing both will increase code complexity as well as increase to risk of bugs. In order to avoid that issue, it proposes a module for the POX controller, which will perform restoration on its own, without any code from the network programmer. The principle is to record all events happening on the controller in-between failures. Once a failure occurs, it starts a new controller instance in a virtual machine, with the same topology as before minus the failed links and nodes, on top of which it replays all events it has recorded. It then finally proceeds to change the controller state to the virtual one and pushes all new flow tables. This is still an expensive process, but has the benefits of providing an optimal solution given the current network state.
 
 Another approach which has a much lower footprint on the controller is presented in \cite{2911632}. Unlike the previous solution, this does perform a complete recomputation of the flows. Instead it requires from the controller to remember all established paths in the network. Once a failure occurs, it then proceeds to recompute only the paths affected by the failure. It does not provide a way to perform this computation, and the obtained solution is not the optimal one as only few flows are adapted to the new network configuration.
+
 \section{Conclusion}
+
 
 \bibliographystyle{IEEEtran}
 \nocite{*}
