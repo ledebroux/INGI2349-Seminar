@@ -2,7 +2,7 @@
 \usepackage[utf8]{inputenc}
 \usepackage{graphicx}
 \usepackage{hyperref}
-\author{Olivier Tilmans ~\and~ Leonard Debroux \\
+\author{Leonard Debroux ~\and~ Olivier Tilmans\\
 \IEEEauthorblockA{
   EPL, UCL\\
   Louvain-la-Neuve, Belgium\\
@@ -26,14 +26,15 @@ Software Defined Network, Protection, Restoration, Failure Detection.
 \end{IEEEkeywords}
 
 \section{Introduction}
-\begin{figure}
-	\includegraphics[width=.53\textwidth]{images/sdn.pdf}
-	\label{fig:sdn}
-	\caption{A SDN with two active flows.}
-\end{figure}
 Being able to handle failure correctly is an important step towards having a deployable solution. OpenFlow, is a spreading technology that deserves to have efficient ways of doing so. It has been introduced by Stanford University and aims at decoupling the data plane from the control plane. Currently, most routers contain their own FIB (Forwarding Information Base), allowing them to forward the packets they receive, as well as some support for common routing protocols (such as OSPF, IS-IS, \ldots) which allow them to distribute the information about the network topology in order to build their FIB.
 
 OpenFlow gives a solution where that FIB is somehow replaced by a FlowTable in switches that do not compute paths anymore. That work is performed by one or more controllers in charge of several underlying switches. Those controllers can perform addition, deletion and modification on the entries in the FlowTable.
+
+\begin{figure}
+	\includegraphics[width=.53\textwidth]{images/sdn.png}
+	\label{fig:sdn}
+	\caption{A SDN with two active flows.}
+\end{figure}
 
 Upon receiving a packet, the switch will check in its FlowTable if there is any match and perform the action associated to that match. If the receiving switch doesn't know how to forward it, it sends it to the controller that decides what to do and installs a new flow entry in the switch. Such a separation allow more flexible routing policies and ensures that adding new functions in the network is possible by simply updating the program running on the controller. The FlowTable entries can also be grouped, which will result in the switch having to chose between these entries depending on some conditions. For example, the fast reroute group will allow a switch to store alternate backup paths to provide local link protection in case of failure.
 
@@ -50,7 +51,7 @@ This can be achieved by any agent in the network, depending on the desired perfo
 A first approach is to assign the responsibility of the detection to the controller. A naive and inefficient solution would be to have it probe each switch (on each link) in the network using some kind of hello messages (LLDP\cite{5409813}, \ldots). This solution does not scale well at all\cite{6364688}, as the controller has to send a linearly increasing number of messages wrt. the link count, the node count and the flow count, this at a sufficient rate to ensure a fast enough detection.
 
 \begin{figure}
-	\includegraphics[width=.5\textwidth]{images/euler.pdf}
+	\includegraphics[width=.5\textwidth]{images/euler.png}
 	\label{fig:cycle}
 	\caption{An Eulerian cycle across all physical links of the network.}
 \end{figure}
@@ -88,7 +89,7 @@ There are no default restoration behaviour in Openflow: once a path has failed, 
 In order to achieve some form of traffic recovery, the controller has to somehow be aware of the existing flows. This is thus the network programmer task to implements error recovery mechanisms. This is precisely what \cite{Kuzniar:2013:AFR:2491185.2491218} argue against. It claims that error handling code and policies are two separate tasks, and that mixing both will increase code complexity as well as increase to risk of bugs. In order to avoid that issue, it proposes a module for the POX controller, which will perform restoration on its own, without any code from the network programmer. The principle is to record all events happening on the controller in-between failures. Once a failure occurs, it starts a new controller instance in a virtual machine, with the same topology as before minus the failed links and nodes, on top of which it replays all events it has recorded. It then finally proceeds to change the controller state to the virtual one and pushes all new flow tables. This is still an expensive process, but has the benefits of providing an optimal solution given the current network state.
 
 \begin{figure}
-	\includegraphics[width=.5\textwidth]{images/enabling_failures.pdf}
+	\includegraphics[width=.5\textwidth]{images/enabling_failures.png}
 	\label{fig:failures}
 	\caption{An example SDN whith 3 established flows where \cite{2911632} could provide a sub-optimal recovery.}
 \end{figure}
