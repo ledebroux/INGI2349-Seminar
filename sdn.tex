@@ -32,8 +32,8 @@ OpenFlow gives a solution where that FIB is somehow replaced by a FlowTable in s
 
 \begin{figure}
 	\includegraphics[width=.53\textwidth]{images/sdn.png}
-	\label{fig:sdn}
 	\caption{A SDN with two active flows.}
+	\label{fig:sdn}
 \end{figure}
 
 Upon receiving a packet, the switch will check in its FlowTable if there is any match and perform the action associated to that match. If the receiving switch doesn't know how to forward it, it sends it to the controller that decides what to do and installs a new flow entry in the switch. Such a separation allow more flexible routing policies and ensures that adding new functions in the network is possible by simply updating the program running on the controller. The FlowTable entries can also be grouped, which will result in the switch having to chose between these entries depending on some conditions. For example, the fast reroute group will allow a switch to store alternate backup paths to provide local link protection in case of failure.
@@ -50,7 +50,7 @@ This can be achieved by any agent in the network, depending on the desired perfo
 \subsection{Controller based detection}
 A first approach is to assign the responsibility of the detection to the controller. A naive and inefficient solution would be to have it probe each switch (on each link) in the network using some kind of hello messages (LLDP\cite{5409813}, \ldots). This solution does not scale well at all\cite{6364688}, as the controller has to send a linearly increasing number of messages wrt. the link count, the node count and the flow count, this at a sufficient rate to ensure a fast enough detection.
 
-A better approach is proposed by \cite{2013arXiv1308.4465K}. The controller computes an Eulerian cycle across all links under its responsibility, and sends a control message over that cycle using static forwarding rules pre-installed on the switches. As soon as that control message fails to come back, it can perform a binary search using another set of static rules in order to locate the link or node that has failed. A possible Eulerian cycle for the SDN in Fig.\ref{fig:sdn} can be seen on Fig.\ref{fig:cycle}. As S4 and S1 are not directly connected, it is possible to create a cycle in the network without splitting the links in two (one for each direction), and then making the graph directed. This explains why S2-S3 are duplicated in the graph. In this example, we see that the controller has attached itself to the switch S2 and is sending control messages from there and waits for those to loop back in order to assess the network health.
+A better approach is proposed by \cite{2013arXiv1308.4465K}. The controller computes an Eulerian cycle across all links under its responsibility, and sends a control message over that cycle using static forwarding rules pre-installed on the switches. As soon as that control message fails to come back, it can perform a binary search using another set of static rules in order to locate the link or node that has failed. A possible Eulerian cycle for the SDN in Fig.\ref{fig:sdn} can be seen on the figure \ref{fig:cycle}. As S4 and S1 are not directly connected, it is possible to create a cycle in the network without splitting the links in two (one for each direction), and then making the graph directed. This explains why S2-S3 are duplicated in the graph. In this example, we see that the controller has attached itself to the switch S2 and is sending control messages from there and waits for those to loop back in order to assess the network health.
 
 The main limitation of this approach is that it cannot handle more than a single link or node failure, as this would break the cycle in multiple places and unlike when a single node was failing, this time the cycle would be broken at multiple places for different reasons, would render the binary search unable to detect both failures (it would only detect one).
 
@@ -65,8 +65,8 @@ As these methods are performed at the speed of the data plane, the detection its
 
 \begin{figure}
 	\includegraphics[width=.5\textwidth]{images/euler.png}
-	\label{fig:cycle}
 	\caption{An Eulerian cycle across all physical links of the network.}
+	\label{fig:cycle}
 \end{figure}
 
 \section{Handling the failures}
@@ -88,14 +88,14 @@ There are no default restoration behaviour in Openflow: once a path has failed, 
 
 In order to achieve some form of traffic recovery, the controller has to somehow be aware of the existing flows. This is thus the network programmer task to implements error recovery mechanisms. This is precisely what \cite{Kuzniar:2013:AFR:2491185.2491218} argue against. It claims that error handling code and policies are two separate tasks, and that mixing both will increase code complexity as well as increase to risk of bugs. In order to avoid that issue, it proposes a module for the POX controller, which will perform restoration on its own, without any code from the network programmer. The principle is to record all events happening on the controller in-between failures. Once a failure occurs, it starts a new controller instance in a virtual machine, with the same topology as before minus the failed links and nodes, on top of which it replays all events it has recorded. It then finally proceeds to change the controller state to the virtual one and pushes all new flow tables. This is still an expensive process, but has the benefits of providing an optimal solution given the current network state.
 
-Another approach which has a much lower footprint on the controller is presented in \cite{2911632}. Unlike the previous solution, this does not perform a complete recomputation of the flows. Instead it requires from the controller to remember all established paths in the network. Once a failure occurs, it then proceeds to recompute only the paths affected by the failure. It does not provide a way to perform this computation, and the obtained solution is not the optimal one as only few flows are adapted to the new network configuration. An example of this can be found from the Fig.\ref{fig:failures}. Supposing the network policy is optimal load balancing, if the link S1-S3 fails, \cite{2911632} will only change the flow S1-S5 and make it go through S1-S2-S5. This could result in congestion on the S1-S2 link which would violate the network policy. On the opposite, \cite{Kuzniar:2013:AFR:2491185.2491218} would have also changed the S1-S6 and make it go through S7 instead of S2.
+Another approach which has a much lower footprint on the controller is presented in \cite{2911632}. Unlike the previous solution, this does not perform a complete recomputation of the flows. Instead it requires from the controller to remember all established paths in the network. Once a failure occurs, it then proceeds to recompute only the paths affected by the failure. It does not provide a way to perform this computation, and the obtained solution is not the optimal one as only few flows are adapted to the new network configuration. An example of this can be found from the figure \ref{fig:failures}. Supposing the network policy is optimal load balancing, if the link S1-S3 fails, \cite{2911632} will only change the flow S1-S5 and make it go through S1-S2-S5. This could result in congestion on the S1-S2 link which would violate the network policy. On the opposite, \cite{Kuzniar:2013:AFR:2491185.2491218} would have also changed the S1-S6 and make it go through S7 instead of S2.
 
 Recently, a completely different solution was presented by \cite{Liu:2013:ECV:2482626.2482639}. It advocates for the relegation of failure recovery to the data plane. The main benefit of this lies in the fact that the data plane operates at line rate, which is much faster than the control plane. While the link connectivity itself is maintained by the data plane, the control plane is still responsible for the optimality of the paths that the data will follow across the netwok. This approach makes uses of the link reversal routing algorithm orignally presented by \cite{1094876}, adapted for the data plane (e.g. without the control messages) in order to let switches build a directed acyclic graph where the only node without outgoing link is the packet destination. It makes use of a single bit of state carried by the data packet (either piggy backed or by using two virtual links on top of a single physical interface) which is used in order to propagate whether a link has been reversed or not. The rest of the algorithm is then quite simple: upon detecting a failure preventing from forwarding the incoming packet, the switch reverses the incoming link and bounces back the packet. It is worth noting that this approach does not impose the failure detection mechanism and that there are no physical implementation of it.
 
 \begin{figure}
 	\includegraphics[width=.5\textwidth]{images/enabling_failures.png}
-	\label{fig:failures}
 	\caption{An example SDN whith 3 established flows where \cite{2911632} could provide a sub-optimal recovery.}
+	\label{fig:failures}
 \end{figure}
 
 \section{Conclusion}
