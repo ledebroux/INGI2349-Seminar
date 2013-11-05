@@ -1,15 +1,17 @@
-\documentclass[compsoc]{IEEEtran}
+\documentclass[]{IEEEtran}
 \usepackage[utf8]{inputenc}
-\author{Olivier Tilmans ~~\and~~ Leonard Debroux}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\author{Olivier Tilmans ~\and~ Leonard Debroux}
 \title{A Survey of Failure Handling in SDN}
 \begin{document}
 \maketitle
 \begin{abstract}
-The issue of treating failures is core in the actual networks as well as in the SDN paradigm. As we want the networks to be efficient and robust, lots of research are done to tackle the problem of failure recovery in better ways than the naive ones.
+The issue of treating failures is core in the actual networks as well as in the SDN paradigm. As we want the networks to be efficient and robust, lots of researches are done to tackle the problem of failure recovery in efficient ways.
 
-The basic way of doing so in the SDN's is to constantly probe the network health from the controller to the switches as well as the links, and to react accordingly. Protection can be also done by adding fast restoration entries in the flow tables so that the switches can quickly react to a failure.
+The basic way of doing so in the SDN's is to constantly probe the network health from the controller to the switches as well as the links, and to react accordingly. Protection can be also done by adding fast reroute entries in the flow tables so that the switches can quickly react to a failure.
 
-In this survey, we'll go through the process of handling failures in a network in a chronological way. Starting with the detection, how to avoid the load on the controller and the massive overhead. Then we'll talk about link and flow protection, how to avoid violating the policies on the network, and how to keep the flow tables from growing exponentially. Finally, we'll talk about recovery and what strategy to adopt on the controller-side to propose efficient recovery and restoration.
+This survey will go through the process of handling failures in a network in a chronological way. Starting with the detection, how to avoid the load on the controller and the massive overhead. Then it will cover link and flow protection, how to avoid violating the network policies, and how to keep the flow tables from growing exponentially. Finally, it will present recovery techniques and what strategy to adopt on the controller-side to propose efficient recovery and restoration.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -17,11 +19,20 @@ Software Defined Network, Protection, Restoration, Failure Detection.
 \end{IEEEkeywords}
 
 \section{Introduction}
-Being able to handle failure correctly is an important step towards having a deployable solution. OpenFlow, is a spreading technology that deserves to have efficient ways of doing so. It has been introduced by Stanford University and aims at sepatating datap plane and control plane. Currently, most routers contain their own FIB (Forwarding Information Base), allowing them to forward the packets they receive. OpenFlow gives a solution where that FIB is somehow replaced by a FlowTable in switches that do not compute paths anymore. That work is performed by one or more controllers in charge of several underlying switches. Those controllers can perform addition, deletion and modification on the entries in the FlowTable.
+\begin{figure}
+	\includegraphics[width=.53\textwidth]{images/sdn.pdf}
+	\label{fig:sdn}
+	\caption{A SDN with two active flows.}
+\end{figure}
+Being able to handle failure correctly is an important step towards having a deployable solution. OpenFlow, is a spreading technology that deserves to have efficient ways of doing so. It has been introduced by Stanford University and aims at decoupling the data plane from the control plane. Currently, most routers contain their own FIB (Forwarding Information Base), allowing them to forward the packets they receive, as well as some support for common routing protocols (such as OSPF, IS-IS, \ldots) which allow them to distribute the information about the network topology in order to build their FIB.
 
-Using this approach, data plane and control plane are completely separeted, as the forwarding is done by the switches, that are now way simpler and cheaper, and as the routing is performed by the controller. For this to work, upon receiving a packet, of the receiving switch doesn't know how to forward it, it sends it to the controller that decides what to do and tells it to the switch. Such a separation allow more flexible routing policies and ensures that adding new function is possible by simply programming the controller.
+OpenFlow gives a solution where that FIB is somehow replaced by a FlowTable in switches that do not compute paths anymore. That work is performed by one or more controllers in charge of several underlying switches. Those controllers can perform addition, deletion and modification on the entries in the FlowTable.
 
-As the controller is in charge of the control plane, it is its job to deal with failures and react to their occurences. To tackle this issue, several fields must be studied. They are the detection of the failures, the protection of the links, nodes and paths, and the restoration after a failure occured. OpenFlow does provide some protection by allowing to add in the FlowTable some restoration entries that can be switch to in the case of the failure of the used one. Finding efficient ways of dealing with failures remains an open problem and generates failure realted papers. This survey aims at comparing several solutions in the different fields that the failure issue covers (detection, protection and restoration).
+Upon receiving a packet, the switch will check in his FlowTable if there is any match and perform the associated action to that match. If the receiving switch doesn't know how to forward it, it sends it to the controller that decides what to do and installs a new flow entry in the switch. Such a separation allow more flexible routing policies and ensures that adding new functions in the network is possible by simply updating the program running on the controller. The FlowTable entries can also be grouped, which will result in the switch having to chose between these entries depending on some conditions. For example, the fast reroute group will allow a switch to store alternate backup paths to provide local link protection in case of failure.
+
+Using this approach, data plane and control plane are completely separated, as the forwarding is done by the switches, that are now simpler and cheaper, as the routing is performed by the controller. An example of such a network can be seen on the figure \ref{fig:sdn}. It is made of two flows (the dashed and dotted lines) installed by the controller on the switches. It is worth noting that the sessions between the controller and the switches do not impose any direct connection between them and the Openflow messages could be routed across the network.
+
+As the controller is in charge of the control plane, it is its job to deal with failures and react to their occurences. To tackle this issue, several fields must be studied. These are the detection of the failures, the protection of the links, nodes and paths, and the restoration in a stable state after a failure occured. OpenFlow does provide some protection by allowing to add in the FlowTable some fast restoration entries that can be switch to in the case of the failure of the used one. Finding efficient ways of dealing with failures remains an open problem and generates failure related papers. This survey aims at comparing several solutions in the different fields that the failure issue covers (detection, protection and restoration).
 
 \section{Detecting failures}
 There are several kind of failures that can affect a network state. Nodes can crash, links can break, resulting in flow which are no longer available. Detecting those failures plays a crucial role for the network to provide good connectivity.
@@ -29,9 +40,15 @@ There are several kind of failures that can affect a network state. Nodes can cr
 This can be achieved by any agent in the network, depending on the desired performance, the available hardware and level of failures.
 
 \subsection{Controller based detection}
-A first approach is to assign the responsibility of the detection to the controller. A naive and inefficient solution would be to have it probe each switch (on each link) in the network using some kind of hello messages (LLDP, \ldots). This solution does not scale well at all, as the controller has to send a linearly increasing number of messages wrt. the link count, the node count and the flow count, this at a sufficient rate to ensure a fast enough detection.
+A first approach is to assign the responsibility of the detection to the controller. A naive and inefficient solution would be to have it probe each switch (on each link) in the network using some kind of hello messages (LLDP\cite{5409813}, \ldots). This solution does not scale well at all\cite{6364688}, as the controller has to send a linearly increasing number of messages wrt. the link count, the node count and the flow count, this at a sufficient rate to ensure a fast enough detection.
 
-A better approach is proposed by \cite{2013arXiv1308.4465K}. The controller computes an Eulerian cycle across all links under its responsibility, and sends a control message over that cycle using static forwarding rules pre-installed on the switches. As soon as that control message fails to come back, it can perform a binary search using another of static rules in order to locate the link or node that has failed.
+\begin{figure}
+	\includegraphics[width=.5\textwidth]{images/euler.pdf}
+	\label{fig:cycle}
+	\caption{An Eulerian cycle across all physical links of the network.}
+\end{figure}
+
+A better approach is proposed by \cite{2013arXiv1308.4465K}. The controller computes an Eulerian cycle across all links under its responsibility, and sends a control message over that cycle using static forwarding rules pre-installed on the switches. As soon as that control message fails to come back, it can perform a binary search using another set of static rules in order to locate the link or node that has failed. A possible Eulerian cycle for the SDN in Fig.\ref{fig:sdn} can be seen on Fig.\ref{fig:cycle}. As S4 and S1 are not directly connected, it is possible to create a cycle in the network without splitting the links in two (one for each direction), and then making the graph directed. This explains why S2-S3 are duplicated in the graph.
 
 The main limitation of this approach is that it cannot handle more than a single link or node failure, as this would break the cycle in multiple places and unlike when a single node was failing, this time the cycle would be broken at multiple places for different reasons, would render the binary search unable to detect both failures (it would only detect one).
 
@@ -40,14 +57,15 @@ Another approach assigns failure detection to the switches. While these methods 
 
 Such system is presented in \cite{6364688}. This paper presents a way to monitor the health of a given tunnel at the egress side, thus in one direction. When receiving OAM messages from the switches along the tunnel, the switch is able to update its state and as soon as it has not received such message in a certain time, it can notify the controller that the path has failed.
 
-Another solution which could be used to monitor the network health at a given time is to simply use BFD on the switches (either by piggybacking it in the data packets, or by generating new packets) and then to notify the controller in case of error.
+Another solution which could be used to monitor the network health at a given time is to use BFD\cite{rfc5880} on the switches (either by piggybacking it in the data packets, or by generating new packets) and then to notify the controller in case of error.
 
-As these methods are performed at the speed of the data plane, the detection itself is very fast, and the overhead on the network itself and on the controller is quite low (although it might require more complex switches).
+As these methods are performed at the speed of the data plane, the detection itself is very fast, and the overhead on the network itself and on the controller is quite low. Furthermore, as Openflow is designed to be able to work on current hardware, and as current hardware usually already support BFD, performing failure detection can be performed in a SDN-agnostic way.
 
 \section{Handling the failures}
 Once a failure has been detected, the network has to react in order to be able to fulfil its role again, withstanding the failure. There are two kind of reactions which are possible, depending on the time scale at which we want the recovery to happen.
+
 \subsection{By using path protection}
-This approach consists of pre-computing backup path for the network flows, and to install them on the switches, which can then use them as soon as a failure is detected, thus avoiding the need for any computation from the controller. Path protection in Openflow networks is achieved by using use of the fast-failover group of flow tables. According to \cite{Sharma:2013:OMC:2445634.2445903}, using this Openflow functionality can already provide sub 50ms recovery time although this was only done in simulations.
+This approach consists of pre-computing backup path for the network flows, and to install them on the switches, which can then use them as soon as a failure is detected, thus avoiding the need for any computation from the controller. Path protection in Openflow networks is achieved by using use of the fast-reroute group of flow tables. According to \cite{Sharma:2013:OMC:2445634.2445903}, using this Openflow functionality can already provide sub 50ms recovery time although this was only done in simulations.
 
 The main issue by this techniques lies in the fact that it is not possible to install all possible backup paths for each link (or flow), as the size of the flow tables is limited.
 
@@ -62,221 +80,28 @@ There are no default restoration behaviour in Openflow: once a path has failed, 
 
 In order to achieve some form of traffic recovery, the controller has to somehow be aware of the existing flows. This is thus the network programmer task to implements error recovery mechanisms. This is precisely what \cite{Kuzniar:2013:AFR:2491185.2491218} argue against. It claims that error handling code and policies are two separate tasks, and that mixing both will increase code complexity as well as increase to risk of bugs. In order to avoid that issue, it proposes a module for the POX controller, which will perform restoration on its own, without any code from the network programmer. The principle is to record all events happening on the controller in-between failures. Once a failure occurs, it starts a new controller instance in a virtual machine, with the same topology as before minus the failed links and nodes, on top of which it replays all events it has recorded. It then finally proceeds to change the controller state to the virtual one and pushes all new flow tables. This is still an expensive process, but has the benefits of providing an optimal solution given the current network state.
 
-Another approach which has a much lower footprint on the controller is presented in \cite{2911632}. Unlike the previous solution, this does perform a complete recomputation of the flows. Instead it requires from the controller to remember all established paths in the network. Once a failure occurs, it then proceeds to recompute only the paths affected by the failure. It does not provide a way to perform this computation, and the obtained solution is not the optimal one as only few flows are adapted to the new network configuration.
+\begin{figure}
+	\includegraphics[width=.5\textwidth]{images/enabling_failures.pdf}
+	\label{fig:failures}
+	\caption{An example SDN whith 3 established flows where \cite{2911632} could provide a sub-optimal recovery.}
+\end{figure}
+
+Another approach which has a much lower footprint on the controller is presented in \cite{2911632}. Unlike the previous solution, this does not perform a complete recomputation of the flows. Instead it requires from the controller to remember all established paths in the network. Once a failure occurs, it then proceeds to recompute only the paths affected by the failure. It does not provide a way to perform this computation, and the obtained solution is not the optimal one as only few flows are adapted to the new network configuration. An example of this can be found from the Fig.\ref{fig:failures}. Supposing the network policy is optimal load balancing, if the link S1-S3 fails, \cite{2911632} will only change the flow S1-S5 and make it go through S1-S2-S5. This could result in congestion on the S1-S2 link which would violate the network policy. On the opposite, \cite{Kuzniar:2013:AFR:2491185.2491218} would have also changed the S1-S6 and make it go through S7 instead of S2.
+
+Recently, a completely different solution was presented by \cite{Liu:2013:ECV:2482626.2482639}. It advocates for the relegation of failure recovery to the data plane. The main benefit of this lies in the fact that the data plane operates at line rate, which is much faster than the control plane. While the link connectivity itself is maintained by the data plane, the control plane is still responsible for the optimality of the paths that the data will follow across the netwok. This approach makes uses of the link reversal routing algorithm orignally presented by \cite{1094876}, adapted for the data plane (e.g. without the control messages) in order to let switches build a directed acyclic graph where the only node without outgoing link is the packet destination. It makes use of a single bit of state carried by the data packet (either piggy backed or by using two virtual links on top of a sigle physical interface) which is used in order to propagate whether a link has been reversed or not. The rest of the algorithm is then quite simple: upon detecting a failure preventing from forwarding the incoming packet, the switch reverses the incoming link and bounces back the packet. It is worth noting that this approach does not impose the failure detection mechanism and that there are no physical implementation of it.
 
 \section{Conclusion}
-If we were to choose a solution in the light of the approaches given in the studied papers, we would choose the following aggregated solution.
+If we were to choose a way to handle failures in the light of the approaches given in the studied papers, we would build the following aggregated solution.
 
-Regarding the detection of the failures, the solution presented in \cite{6364688} as it avoid some huge load on the controller due to the large amount of messages that would have to be sent. The issue that the controller must be reach when a failure occured can be overcome by a good protection mechanism. 
+For the detection step, sticking to BFD or using the solution presented in \cite{6364688} as it avoid overloading the controller with too mny control messages.
 
-For that matter, the two approaches proposed in \cite{Reitblatt:2013:FDF:2491185.2491187} and \cite{Suchara:2011:NAJ:1993744.1993756} can be combined to propose policies-compliant protection paths on the switches and offers the advantage of being about to use them to perform some load balancing.
+Once a failure has been detected, in order to avoid as many packet losses as possible, it would first trigger the switch to start using the flows installed in its fast-reroute FLowTable group. In order to compute those backup path the FatTire approach seems ideal \cite{Reitblatt:2013:FDF:2491185.2491187} as it proposes policies-compliant protection paths on the switches. As we are already computing additional paths for the same flows, we could also make use those in order to perform load balancing as suggested by \cite{Suchara:2011:NAJ:1993744.1993756}.
 
-Eventually, we would combined the solutions presented in \cite{Kuzniar:2013:AFR:2491185.2491218} and \cite{2911632}. The first one goal would be to compute optimal recovery paths, while the second one would offer non-optimal fast ones to cope with the time that the recomputation of all paths would take. By using both of them, we can take the benefits of either of those approach while limiting their drawbacks.
+Eventually, we would use the solution presented in \cite{Kuzniar:2013:AFR:2491185.2491218} in order to perform an optimal recovery of the network.
+
+This mixed approach allows us to detect failures quickly and to lose as few packets as possible due to the use of protection. Finally, combining the FatTire framework with the AFRO one would allow the network programmer to avoid having to deal with all the error handling code. The only part he would have to write would be to write down the network policies as well as the links requiring protection, but those are probably likely to be already defined in some other part of the network code.
 
 \bibliographystyle{IEEEtran}
 \nocite{*}
 \bibliography{biblio}
-
-\appendix
-Short reviews of the cited papers.
-\subsection{Verifying forwarding plane connectivity \cite{2013arXiv1308.4465K}}
-This article presents a way to detect and locate a single arbitrary node or link failure.
-In order to do so, the controller will install multiple sets of static routing rules in the switches.
-
-The first set is used to detect whether there is a failure or not in the network.
-The main idea is to create an Euler cycle in the network (if the network does not allow one, the trick is to duplicate all link and build a directed graph, which will force the existence of such a cycle). The controller will then attach itself to a node in the network and send a control message. This message will be then propagated around the cycle and will loop back to the controller if all links and node are operating properly.
-
-The second set of forwarding rules is used to locate the failure in the network. The controller will send a second control message which should loop back to the control after reaching a given node. The controller will keep repeating this operation, allowing it to perform a binary search over the nodes until it locates the link or node that has failed.
-
-\textbf{Limitations:}
-\begin{itemize}
-	\item \textbf{Scalability} This only works in case of a single link or node failure. (As the same node can be in different places fo the cycle thus breaking it multiple times). This is suitable to networks of arbitrary size. Detecting a failure requires up to 6 times the number of links, and takes up to log(\#number of links) control messages.
-	\item \textbf{Time} This does not perform recovery, but detection. The detection itself might be 'slow' wrt. forwarding plane speed depending on the size of the network.
-	\item \textbf{Overhead} Extremely small as very few control messages have to be sent when no failures are present.
-	\item \textbf{Load} The load is insignificant as the controller has a passive role.
-\end{itemize}
-
-\textbf{Issue treated}
-\begin{itemize}
-	\item Node failure
-	\item Link failure
-\end{itemize}
-
-\textbf{Topic}
-\begin{itemize}
-	\item Detection
-\end{itemize}
-
-\subsection{FatTire: Declarative Fault Tolerance for SDN \cite{Reitblatt:2013:FDF:2491185.2491187}}
-This paper introduces a new language constructs that enable a programmer to specify flow invariant, even in case of failure. This construction is then compiled in order to generate backup forwarding table entries using OpenFlow fast failover mechanism and installed on the switches.
-The paper describes the language syntax as well as its implementation.
-
-\textbf{Limitations:}
-\begin{itemize}
-	\item \textbf{Scalability} This will require switches to have huge forwarding tables if it wants to account for every possible failure (if the programmer enabled FatTire for all possible flows). Scales linearly with the number of interfaces and the number of flow destinations. It can handle arbitrary number of failures
-	\item \textbf{Time} Quite fast as the longest part of it is taken by the detection mechanism. The recovery itself is preinstalled in the flow tables.
-	\item \textbf{Load} Not constant load on the controller.
-\end{itemize}
-
-\textbf{Issue treated}
-\begin{itemize}
-	\item Node failure
-	\item Link failure
-\end{itemize}
-
-\textbf{Topic}
-\begin{itemize}
-	\item Protection
-\end{itemize}
-
-\subsection{Automatic failure recovery for SDN \cite{Kuzniar:2013:AFR:2491185.2491218}}
-This paper advocates the need to separate the failure recovery mechanism on the controller from the forwarding and policy logic. It presents such a framework which is built for the POX controller, and provides a simple module that will handle failures and recover from them allowing developer to write failure-agnostic code.
-
-This framework works in two phases:
-\begin{enumerate}
-	\item When there are no failures in the network, it records all events that happen on the controller.
-	\item When a failure is detected, it performs the recovery in two phases:
-		\begin{description}
-			\item \textbf{The replay phase} It creates a clean copy of the original controller, minus the failed nodes, and replay all events it has recorded, which leads to a new coherent controller state accounting for the failure.
-			\item \textbf{The reconfiguration phase} It pushes the new network state to the controller and the switches
-		\end{description}
-\end{enumerate}
-
-\textbf{Limitations:}
-\begin{itemize}
-	\item \textbf{Scalability} The model used to account for failure is always simpler than the real network, so it has virtually no impact.
-	\item \textbf{Time} This is a "slow" process, as the configuration change has to be pushed from the controller to the switches after being signaled to the controller.
-	\item \textbf{Load} Only when a failure occurs
-\end{itemize}
-
-\textbf{Issue treated}
-\begin{itemize}
-	\item Node failure
-	\item Link failure
-\end{itemize}
-
-\textbf{Topic}
-\begin{itemize}
-	\item Recovery
-\end{itemize}
-
-\subsection{Enabling fast failure recovery in OpenFlow Networks \cite{2911632}}
-The topic of this article is to present a way of doing fast failure recovery in openflow networks.
-The idea is to make sure that upon the acknowledgment of a failure by the controller, there is an efficient way to quickly inform the openflow switches.
-
-To do so, the article presents an algorithm on how to recover from a failure fast enough and on the whole network.
-For the method to work, there are several requierments from the controller. These are the following:
-\begin{itemize}
-	\item The controller must know about the failure
-	\item The controller must remember the paths it established
-	\item The controller must be able to compute a new path
-	\item The controller knows all the current flows in the network
-\end{itemize}
-The algorithm states that upon a link failure, a new path is computed for every path that goes through this link.
-Then, in each switch of the network that has an entry related to the old broken path, the entry is delete and new ones are pushed to establish the new path.
-
-The results in the article are restoration times of about 12ms. In large networks, the goal is to propose restoration times that are below 50ms.
-
-\textbf{Limitations:}
-\begin{itemize}
-	\item \textbf{Scalability} Does not scale well as the controller needs to remember all established paths.
-	\item \textbf{Time} The recovery process is "fast" as only few flow are recomputed, but it still needs to wait for the new flows to be installed.
-	\item \textbf{Load} Only when a failure occurs
-\end{itemize}
-
-\textbf{Issue treated}
-\begin{itemize}
-	\item Node failure
-	\item Link failure
-\end{itemize}
-
-\textbf{Topic}
-\begin{itemize}
-	\item Restoration
-\end{itemize}
-
-\subsection{Scalable Fault Management for OpenFlow \cite{6364688}}
-This paper present an alternative solution to LLDP to monitor the network health. To do so, the switches are extended to be able to send and to react to OAM (Operation, Administration, and Maintenance) packets.
-
-The advantage taken from this solution is that the controller does not have to worry about monitoring the network for failures anymore. If it had to do it, to be able to react within a certain limit of time (50ms), it would mean send a high amount of LLDP packets per second, per link and per end-to-end tunnel. This causes serious scalability issues in openflow.
-
-In this solution, if a failure occurs, it is detected without the need of the packet to get back to the sender. When a OAM packet is received on the egress side of a tunnel, the switch updates a state accordingly to the packet. For each tunnel monitored at the switch, there is a timer that is updated for each monitoring packet received. If that timer expires, the switch notifies the controller that the tunnel has failed.
-
-\textbf{Limitations:}
-\begin{itemize}
-	\item \textbf{Scalability} The switches must be somehow intelligents, the advantage of having simple switches is lost.
-	\item \textbf{Time} There is no need for response from the targeted switch, the only time constraint is the time that must elapse before a link is considered broken.
-	\item \textbf{Overhead} No more than LLDP.
-\end{itemize}
-
-\textbf{Issue treated}
-\begin{itemize}
-	\item Node failure
-	\item Link failure
-\end{itemize}
-
-\textbf{Topic}
-\begin{itemize}
-	\item Detection
-\end{itemize}
-
-\subsection{Network Architecture for joint Failure Recovery and Traffic Engineering \cite{Suchara:2011:NAJ:1993744.1993756}}
-This paper presents a way to unify load balancing and failure recovery.
-
-It first starts by presenting this unified approach in a protocol agnostic way, then presents some experimental results and finally concludes by providing a few hints on how to deploy it in real networks (i.e. by using MPLS, Openflow, \ldots).
-
-The main idea is that routers should be simple forwarding switches, much like in the SDN paradigm. An external management system precomputes multiple paths for each pair of edge routers which have traffic between them. The routers in the network will then perform load balancing by splitting the traffic over the normal paths and the backup paths. If a path fails, the routers will simply remove the failed path from their FIB, and continue forwarding traffic over the remaining paths.
-
-In this system, failures are detected at a path level, by the ingress/egress routers, which will react to the failures themselves by rebalancing the traffic on the remaining path, ignoring the load informations. As this recovery is perform without this information, the edge routers do not need to broadcast real-time updates about the network state, which means that the reaction of a given router to a failure is deterministic. 
-
-\textbf{Limitations:}
-\begin{itemize}
-	\item \textbf{Scalability} The switches must be able to remember several paths to each destination. 
-	\item \textbf{Time} Only time consuming when the paths must be computed. Takes no time when a link goes down.
-\end{itemize}
-
-\textbf{Issue treated}
-\begin{itemize}
-	\item Node failure
-	\item Link failure
-\end{itemize}
-
-\textbf{Topic}
-\begin{itemize}
-	\item Protection
-	\item Recovery
-\end{itemize}
-
-\subsection{Ensuring connectivity via data plane mechanisms \cite{Liu:2013:ECV:2482626.2482639}}
-This article presents a way to speed up connectivity by assigning it to the data plane.
-
-In the case of failures, the control plane is typicaly responsible for the recovery and is slower than the data plane by several orders of magnitude. What is proposed here is to delagate to the data plane the task of ensuring connectivity from point to point, so that, in the event of a failure, the recovery is done at the speed of the data plane.
-
-To do so, they implement a variant of the Gafni-Bertsekas link reversal algorithm to build a directed acyclic graph for each destination, where each destination is a sink (no outgoing edges). That way, any path through that tree leads to the destination.
-
-The control plane still keeps a role, that is to ensure that the paths that are used are optimal (eg: shortest paths). The algorithm used is incremental and aims at leading the networks towards shortest paths.
-
-\textbf{Limitations:}
-\begin{itemize}
-	\item \textbf{Scalability} The aims of sdn is to provide a splitted way of using the data plane and control plane. Here, the bond between them is much stronger.
-\end{itemize}
-
-\textbf{Issue treated}
-\begin{itemize}
-	\item Node failure
-	\item Link failure
-\end{itemize}
-
-\textbf{Topic}
-\begin{itemize}
-	\item Recovery
-\end{itemize}
-
-\subsection{OpenFlow: Meeting carrier-grade recovery requirements \cite{Sharma:2013:OMC:2445634.2445903}}
-This paper presents a performance evaluation of the standard technique used to handle failures in Openflow networks in order to meet carrier grade requirements: sub 50ms recovery time (thus mainly using path protection technique).
-
-This paper does not present new techniques, but rather focuses on the evaluation of the performance of the fast-failover mechanism in Openflow. 
-
-\textbf{Limitation of the paper:}
-Those performance are the result of simulations, in a controller environment. Furthermore, due to how the simulation was ran, they had troubles identifying the exact at which links were brought down to simulate a failure, thus impacting the precision of their measurements.
 \end{document}
